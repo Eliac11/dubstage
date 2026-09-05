@@ -679,13 +679,15 @@ def export_backing_track(no_vocals_wav, out_path, log=None):
     return out_path
 
 
-def convert_video(video, out_path, max_height=720, quality=20, log=None):
+def convert_video(video, out_path, max_height=None, quality=18, log=None):
     """
-    Schreibt das Video fuer den Pack. MP4/H.264 ist Standard: schnell,
-    klein und scharf. Endet der Pfad auf .ogv, wird Theora+Vorbis
-    geschrieben - fuer Packs, die das brauchen.
+    Schreibt das Video fuer den Pack. Ohne max_height bleibt die originale
+    Aufloesung erhalten. MP4/H.264 ist Standard; .ogv wird fuer das
+    Choicer-Voicer-Format mit Theora+Vorbis geschrieben.
     """
-    scale = "scale=-2:'min(%d,ih)'" % int(max_height)
+    vf = []
+    if max_height is not None:
+        vf = ["-vf", "scale=-2:'min(%d,ih)'" % int(max_height)]
     if out_path.lower().endswith(".ogv"):
         has_theora, has_vorbis = check_encoders()
         if not has_theora or not has_vorbis:
@@ -696,7 +698,30 @@ def convert_video(video, out_path, max_height=720, quality=20, log=None):
         args = ["-c:v", "libx264", "-crf", str(int(quality)),
                 "-preset", "veryfast", "-pix_fmt", "yuv420p",
                 "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"]
-    run([ffmpeg(), "-y", "-hide_banner", "-i", video, "-vf", scale]
+
+    # Keep the original video bitstream whenever the target container can
+    # hold it. Only the source audio is converted to the pack's audio codec.
+    # This preserves resolution and avoids an unnecessary generation loss.
+    if not vf:
+        suffix = os.path.splitext(out_path)[1]
+        tmp = tempfile.mktemp(suffix=suffix)
+        copy_args = ["-c:v", "copy"]
+        if out_path.lower().endswith(".ogv"):
+            copy_args += ["-c:a", "copy"]
+        else:
+            copy_args += ["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"]
+        try:
+            run([ffmpeg(), "-y", "-hide_banner", "-i", video]
+                + copy_args + ["-map", "0:v:0", "-map", "0:a:0?", tmp],
+                log=log)
+            os.replace(tmp, out_path)
+            return out_path
+        except RuntimeError:
+            if os.path.exists(tmp):
+                os.remove(tmp)
+
+    run([ffmpeg(), "-y", "-hide_banner", "-i", video]
+        + vf
         + args + ["-map", "0:v:0", "-map", "0:a:0?", out_path], log=log)
     return out_path
 

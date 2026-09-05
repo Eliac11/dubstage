@@ -143,7 +143,8 @@ T = {
     "s3":           (" 3. Pack bauen ", " 3. Build the pack "),
     "pack_name":    ("Pack-Name:", "Pack name:"),
     "is_dub":       ("Mit Video (fuer DubStage)", "With video (for DubStage)"),
-    "vheight":      ("Video-Hoehe:", "Video height:"),
+    "vheight":      ("Videoqualitaet:", "Video quality:"),
+    "original_quality": ("Original", "Original"),
     "target_dir":   ("Zielordner:", "Target folder:"),
     "browse":       ("Waehlen", "Browse"),
     "build":        ("Pack bauen", "Build pack"),
@@ -412,7 +413,7 @@ class App(tk.Tk):
         self.maxlen = tk.DoubleVar(value=c.get("maxlen", 6.0))
         self.pack_name = tk.StringVar(value=c.get("pack_name", "Mein_Pack"))
         self.is_dub = tk.BooleanVar(value=c.get("is_dub", True))
-        self.vheight = tk.StringVar(value=c.get("vheight", "720"))
+        self.vheight = tk.StringVar(value="Original")
         self.target_dir = tk.StringVar(value=c.get("target_dir", ""))
         self.caption_var = tk.StringVar(value="")
         self.fmt = tk.StringVar(value=c.get("fmt", "dubstage"))
@@ -770,8 +771,8 @@ class App(tk.Tk):
         ttk.Checkbutton(g, text=t("is_dub"), variable=self.is_dub).grid(
             row=0, column=2, padx=(16, 6))
         ttk.Label(g, text=t("vheight")).grid(row=0, column=3, padx=(10, 4))
-        ttk.Combobox(g, textvariable=self.vheight, width=7, state="readonly",
-                     values=("1080", "720", "540", "480", "360")).grid(row=0, column=4)
+        ttk.Label(g, text=t("original_quality"),
+                  style="Dim.TLabel").grid(row=0, column=4, sticky="w")
 
         ttk.Label(g, text=t("target_dir")).grid(row=1, column=0, sticky="w",
                                                 pady=(8, 0))
@@ -1763,7 +1764,7 @@ class App(tk.Tk):
             self._set_status(t("st_ogv"), 72)
             pc.convert_video(self.video_path,
                              os.path.join(dest, "dub_video.mp4"),
-                             max_height=int(self.vheight.get()), log=self._log)
+                             log=self._log)
             self._log("  dub_video.mp4")
             with open(os.path.join(dest, "_TIMESTAMPS.txt"), "w",
                       encoding="utf-8") as f:
@@ -1839,7 +1840,7 @@ class App(tk.Tk):
             self._set_status(t("st_ogv"), 72)
             pc.convert_video(self.video_path,
                              os.path.join(dest, "dub_video.ogv"),
-                             max_height=int(self.vheight.get()), log=self._log)
+                             log=self._log)
             self._log("  dub_video.ogv")
 
         self.built_path = dest

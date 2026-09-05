@@ -397,16 +397,33 @@ def render_dub(pack, sr=SR, duck=0.18, log=None):
 def export_dub_video(pack, mixed_audio, out_path, sr=SR, log=None):
     """Schreibt Video + eigener Tonspur als MP4 zum Weitergeben."""
     tmp_wav = tempfile.mktemp(suffix=".wav")
+    tmp_out = tempfile.mktemp(suffix=".mp4")
     write_wav_mono(tmp_wav, mixed_audio, sr)
     try:
-        pc.run([pc.ffmpeg(), "-y", "-hide_banner", "-loglevel", "error",
-                "-i", pack.video, "-i", tmp_wav,
-                "-map", "0:v:0", "-map", "1:a:0",
-                "-c:v", "libx264", "-crf", "20", "-preset", "veryfast",
-                "-c:a", "aac", "-b:a", "192k", "-shortest", out_path], log=log)
+        # A DubStage pack normally contains MP4/H.264. In that case the
+        # original video stream can be kept byte-for-byte while only the
+        # newly recorded audio is encoded. This avoids a second quality loss.
+        try:
+            pc.run([pc.ffmpeg(), "-y", "-hide_banner", "-loglevel", "error",
+                    "-i", pack.video, "-i", tmp_wav,
+                    "-map", "0:v:0", "-map", "1:a:0",
+                    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                    "-shortest", tmp_out], log=log)
+        except RuntimeError:
+            if os.path.exists(tmp_out):
+                os.remove(tmp_out)
+            pc.run([pc.ffmpeg(), "-y", "-hide_banner", "-loglevel", "error",
+                    "-i", pack.video, "-i", tmp_wav,
+                    "-map", "0:v:0", "-map", "1:a:0",
+                    "-c:v", "libx264", "-crf", "18", "-preset", "slow",
+                    "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k",
+                    "-shortest", tmp_out], log=log)
+        os.replace(tmp_out, out_path)
     finally:
         if os.path.exists(tmp_wav):
             os.remove(tmp_wav)
+        if os.path.exists(tmp_out):
+            os.remove(tmp_out)
     return out_path
 
 
