@@ -679,6 +679,17 @@ def export_backing_track(no_vocals_wav, out_path, log=None):
     return out_path
 
 
+def _temporary_output_path(path):
+    """Creates a temporary output name next to the final file."""
+    directory = os.path.dirname(os.path.abspath(path))
+    suffix = os.path.splitext(path)[1]
+    fd, temporary = tempfile.mkstemp(prefix=".dubstage_", suffix=suffix,
+                                     dir=directory)
+    os.close(fd)
+    os.remove(temporary)
+    return temporary
+
+
 def convert_video(video, out_path, max_height=None, quality=18, log=None):
     """
     Schreibt das Video fuer den Pack. Ohne max_height bleibt die originale
@@ -704,7 +715,7 @@ def convert_video(video, out_path, max_height=None, quality=18, log=None):
     # This preserves resolution and avoids an unnecessary generation loss.
     if not vf:
         suffix = os.path.splitext(out_path)[1]
-        tmp = tempfile.mktemp(suffix=suffix)
+        tmp = _temporary_output_path(out_path)
         copy_args = ["-c:v", "copy"]
         if out_path.lower().endswith(".ogv"):
             copy_args += ["-c:a", "copy"]

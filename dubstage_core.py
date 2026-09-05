@@ -397,7 +397,7 @@ def render_dub(pack, sr=SR, duck=0.18, log=None):
 def export_dub_video(pack, mixed_audio, out_path, sr=SR, log=None):
     """Schreibt Video + eigener Tonspur als MP4 zum Weitergeben."""
     tmp_wav = tempfile.mktemp(suffix=".wav")
-    tmp_out = tempfile.mktemp(suffix=".mp4")
+    tmp_out = pc._temporary_output_path(out_path)
     write_wav_mono(tmp_wav, mixed_audio, sr)
     try:
         # A DubStage pack normally contains MP4/H.264. In that case the
